@@ -1,0 +1,51 @@
+name: Weekly F1 AI Update
+
+on:
+  schedule:
+    # Run at 09:00 UTC every Monday
+    - cron: '0 9 * * 1'
+  workflow_dispatch:  # Allows you to click "Run Now" manually for testing
+
+permissions:
+  contents: write  # Critical: Allows the bot to push changes back to the repo
+
+jobs:
+  update-data-and-model:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: 1. Fetch Latest Race Results
+        run: python etl_process.py
+
+      - name: 2. Generate Training Features (Practice Data)
+        run: python generate_features.py
+
+      - name: 3. Retrain AI Model
+        run: python train_model.py
+
+      - name: Check for changes
+        id: git-check
+        run: |
+          git diff --exit-code || echo "changes=true" >> $GITHUB_OUTPUT
+
+      - name: Commit and Push if changes exist
+        if: steps.git-check.outputs.changes == 'true'
+        run: |
+          git config --global user.name 'F1-AI-Bot'
+          git config --global user.email 'bot@noreply.github.com'
+          git add data/*.parquet data/*.pkl
+          git commit -m "🤖 Auto-update: New F1 data & Retrained Model"
+          git push
