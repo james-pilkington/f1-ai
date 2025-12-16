@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.env
+
+# Streamlit
+.streamlit/
+
+# Data Caches (FastF1 cache can get huge)
+__pycache__
+/f1_cache/
+
+# Mac system files
+.DS_Store
