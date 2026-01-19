@@ -59,13 +59,8 @@ if race_artifacts:
     r_back = race_artifacts.get('mae_back', 0)
     r_clean = race_artifacts.get('mae_clean', 0)
     
-    c3, c4 = st.sidebar.columns(2)
-    c3.metric("Global", f"±{r_global:.1f}")
-    c4.metric("Clean", f"±{r_clean:.1f}")
-    
     # Detailed Split
     if r_front > 0:
-        st.sidebar.write("---")
         st.sidebar.write("**Grid Split Accuracy**")
         c5, c6 = st.sidebar.columns(2)
         c5.metric("Front Grid", f"±{r_front:.1f}", help="Drivers starting P1-P10")
