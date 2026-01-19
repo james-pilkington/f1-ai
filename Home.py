@@ -1,33 +1,79 @@
 import streamlit as st
 import pandas as pd
+import os
 from utils import setup_app, load_model, get_next_race, get_weekend_status
 
 # --- APP SETUP ---
 setup_app()
 st.set_page_config(page_title="F1 AI Strategist", page_icon="🏎️", layout="wide")
 
-# --- SIDEBAR: MODEL STATUS ---
-# Note: In "Automatic" mode, this sidebar content only shows when you are on the Home page.
-# (To show it everywhere, you'd add this snippet to every page).
-artifacts = load_model()
+# --- LOAD MODELS ---
+# 1. Quali Model (Standard Loader)
+quali_artifacts = load_model()
 
+# 2. Race Model (Custom Loader)
+@st.cache_resource
+def load_race_model():
+    try:
+        import pickle
+        if os.path.exists('data/race_model.pkl'):
+            with open('data/race_model.pkl', 'rb') as f:
+                return pickle.load(f)
+    except: return None
+    return None
+
+race_artifacts = load_race_model()
+
+# --- SIDEBAR: INTELLIGENCE REPORT ---
 st.sidebar.title("🏎️ F1 AI Strategist")
 st.sidebar.info("Select a tool from the menu above to begin.")
 
-if artifacts:
-    st.sidebar.divider()
-    st.sidebar.success("🧠 AI Model Online")
+st.sidebar.divider()
+
+# A. QUALIFYING STATS
+if quali_artifacts:
+    st.sidebar.subheader("🔮 Qualifying AI")
     
-    # Retrieve Segmented Metrics
-    mae_global = artifacts.get('mae_global', artifacts.get('mae', 0))
-    mae_top10 = artifacts.get('mae_top10', 0)
-    mae_clean = artifacts.get('mae_clean', 0)
+    q_global = quali_artifacts.get('mae_global', quali_artifacts.get('mae', 0))
+    q_top10 = quali_artifacts.get('mae_top10', 0)
+    q_clean = quali_artifacts.get('mae_clean', 0)
     
-    st.sidebar.markdown("### Model Accuracy")
     c1, c2 = st.sidebar.columns(2)
-    c1.metric("Global", f"±{mae_global:.1f}")
-    c2.metric("Top 10", f"±{mae_top10:.1f}")
-    st.sidebar.caption(f"Clean MAE: ±{mae_clean:.1f}")
+    c1.metric("Global", f"±{q_global:.1f}")
+    c2.metric("Top 10", f"±{q_top10:.1f}")
+    
+    st.sidebar.caption(f"**Clean MAE: ±{q_clean:.1f}**")
+    st.sidebar.caption("*(Excludes anomalies > 8 spots)*")
+else:
+    st.sidebar.warning("Quali Model Offline")
+
+st.sidebar.divider()
+
+# B. RACE STATS
+if race_artifacts:
+    st.sidebar.subheader("🏁 Race AI")
+    
+    r_global = race_artifacts.get('mae_global', 0)
+    # Check if split stats exist (requires updated train_race_model.py)
+    r_front = race_artifacts.get('mae_front', 0) 
+    r_back = race_artifacts.get('mae_back', 0)
+    r_clean = race_artifacts.get('mae_clean', 0)
+    
+    c3, c4 = st.sidebar.columns(2)
+    c3.metric("Global", f"±{r_global:.1f}")
+    c4.metric("Clean", f"±{r_clean:.1f}")
+    
+    # Detailed Split
+    if r_front > 0:
+        st.sidebar.write("---")
+        st.sidebar.write("**Grid Split Accuracy**")
+        c5, c6 = st.sidebar.columns(2)
+        c5.metric("Front Grid", f"±{r_front:.1f}", help="Drivers starting P1-P10")
+        c6.metric("Back Grid", f"±{r_back:.1f}", help="Drivers starting P11+")
+    
+    st.sidebar.caption(f"*(Clean excludes DNFs)*")
+else:
+    st.sidebar.warning("Race Model Offline")
 
 # --- MAIN PAGE CONTENT ---
 st.title("🏁 F1 Strategy Command Center")
@@ -68,7 +114,7 @@ if next_race is not None:
     * **Driver & Team Grids:** Career analysis and head-to-head comparisons.
     """)
     
-    if st.button("Go to Race Oracle →"):
+    if st.button("Go to Race Oracle →", type="primary"):
         st.switch_page("pages/1_ai_predictions.py")
 
 else:

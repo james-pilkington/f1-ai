@@ -134,7 +134,9 @@ def train_race_model():
         'le_track': le_track,
         'le_type': le_type,
         'features': features,
-        'mae_clean': mae
+        'mae_clean': mae,
+        'mae_front': mae_front,  # <--- NEW: Add this
+        'mae_back': mae_back     # <--- NEW: Add this
     }
     
     with open('data/race_model.pkl', 'wb') as f:
