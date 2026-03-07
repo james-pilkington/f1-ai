@@ -219,12 +219,12 @@ with tab1:
                     if d in driver_profiles.index:
                         prof = driver_profiles.loc[d]
                         # Features from history
-                        season_avg = prof['Season_Avg_Grid']
-                        form_5 = prof['Form_Last5_Finish']
-                        q_vol = prof['Quali_Volatility']
-                        pos_gain = prof['Avg_Pos_Gained']
-                        pit_speed = prof['Team_Pit_Speed']
-                        q_gap = prof['Quali_Gap_Pct'] # Use their historical average as proxy
+                        season_avg = prof.get('Season_Avg_Grid', 10.0)
+                        form_5     = prof.get('Form_Last5_Finish', 10.0)
+                        q_vol      = prof.get('Quali_Volatility', 2.0)
+                        pos_gain   = prof.get('Avg_Pos_Gained', 0.0)
+                        pit_speed  = prof.get('Team_Pit_Speed', 30.0)
+                        q_gap      = prof.get('Quali_Gap_Pct', 0.05) # Use their historical average as proxy
                     else:
                         # Rookie Defaults
                         season_avg, form_5, q_vol, pos_gain, pit_speed, q_gap = 10, 10, 2.0, 0, 30.0, 0.05
@@ -232,7 +232,7 @@ with tab1:
                     # 2. CALCULATED CONTEXT
                     car_pot = g - team_best_map.get(t, g)
                     tm_delta = g - team_avg_map.get(t, g)
-                    
+
                     # 3. BUILD FEATURE VECTOR (Must match train_suite list exactly!)
                     # ['Grid_Pos', 'Car_Potential', 'Teammate_Delta_Grid', 'Quali_Gap_Pct', 
                     #  'Season_Avg_Grid', 'Form_Last5_Finish', 'Quali_Volatility', 
