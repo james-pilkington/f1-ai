@@ -209,8 +209,8 @@ with tab1:
                     t_code, dt_code, df_code = 0, 0, 0 # Fallbacks
                 
                 progress = st.progress(0)
-                
-                for idx, row in edited_grid.iterrows():
+
+                for i, (idx, row) in enumerate(edited_grid.iterrows()):
                     d = row['Driver']
                     t = row['Team']
                     g = row['Grid']
@@ -272,7 +272,8 @@ with tab1:
                         'Strategy Intel': " ".join(badges) if badges else "—"
                     })
                     
-                    progress.progress((idx+1)/len(edited_grid))
+                    #progress.progress((idx+1)/len(edited_grid))
+                    progress.progress((i + 1) / len(edited_grid))
                     
                 # DISPLAY
                 res_df = pd.DataFrame(results).sort_values('Finish')
