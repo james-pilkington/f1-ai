@@ -41,7 +41,23 @@ def calculate_advanced_features(df):
     df = df.drop(columns=['Season_Avg'], errors='ignore')
     return df
 
-def get_data(years=[2023, 2024, 2025], force_rebuild=False):
+def load_session_safe(year, round_num, session_type, retries=3, **load_kwargs):
+    """Loads a session, backing off on FastF1/Ergast rate-limit (429) responses."""
+    for attempt in range(retries):
+        try:
+            s = fastf1.get_session(year, round_num, session_type)
+            s.load(**load_kwargs)
+            return s
+        except Exception as e:
+            if "429" in str(e) and attempt < retries - 1:
+                print(f"      ⚠️ Rate limited. Cooling down 60s (attempt {attempt+1}/{retries})...")
+                time.sleep(60)
+            else:
+                raise
+
+def get_data(years=None, force_rebuild=False):
+    if years is None:
+        years = list(range(2023, pd.Timestamp.now().year + 1))
     # 1. Load Existing Data
     existing_df = pd.DataFrame()
     existing_rounds = set()
@@ -76,24 +92,21 @@ def get_data(years=[2023, 2024, 2025], force_rebuild=False):
             try:
                 # --- A. TARGET: QUALI ---
                 time.sleep(1) # Safety Delay
-                qs = fastf1.get_session(year, round_num, 'Q')
-                qs.load(telemetry=False, messages=False, weather=False)
-                
+                qs = load_session_safe(year, round_num, 'Q', telemetry=False, messages=False, weather=False)
+
                 if not hasattr(qs, 'results') or qs.results.empty: continue
 
                 q_df = qs.results[['DriverNumber', 'Abbreviation', 'TeamName', 'Position']].copy()
                 q_df = q_df.rename(columns={'Position': 'Quali_Pos', 'Abbreviation': 'Driver'})
                 q_df['DriverNumber'] = q_df['DriverNumber'].astype(str).str.strip()
-                
+
                 # --- B. SIGNAL: FP3 (or FP1) ---
                 try:
                     time.sleep(1) # Safety Delay
-                    fp = fastf1.get_session(year, round_num, 'FP3')
-                    fp.load(telemetry=False, messages=False, weather=False)
-                except:
+                    fp = load_session_safe(year, round_num, 'FP3', telemetry=False, messages=False, weather=False)
+                except Exception:
                     time.sleep(2)
-                    fp = fastf1.get_session(year, round_num, 'FP1')
-                    fp.load(telemetry=False, messages=False, weather=False)
+                    fp = load_session_safe(year, round_num, 'FP1', telemetry=False, messages=False, weather=False)
 
                 # --- CRITICAL FIX: FORCE CALCULATE RANK FROM TIME ---
                 # Official 'Position' is often NaN in practice. We calculate it ourselves.

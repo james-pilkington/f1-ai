@@ -89,7 +89,23 @@ def calculate_metrics(df):
     df = df.fillna(0)
     return df
 
-def get_data(years=[2023, 2024, 2025], force_rebuild=False):
+def load_session_safe(year, round_num, session_type, retries=3, **load_kwargs):
+    """Loads a session, backing off on FastF1/Ergast rate-limit (429) responses."""
+    for attempt in range(retries):
+        try:
+            s = fastf1.get_session(year, round_num, session_type)
+            s.load(**load_kwargs)
+            return s
+        except Exception as e:
+            if "429" in str(e) and attempt < retries - 1:
+                print(f"      ⚠️ Rate limited. Cooling down 60s (attempt {attempt+1}/{retries})...")
+                time.sleep(60)
+            else:
+                raise
+
+def get_data(years=None, force_rebuild=False):
+    if years is None:
+        years = list(range(2023, pd.Timestamp.now().year + 1))
     master_df = pd.DataFrame()
     existing_rounds = set()
     
@@ -122,8 +138,7 @@ def get_data(years=[2023, 2024, 2025], force_rebuild=False):
                 # PHASE 1: QUALIFYING (The Speed Truth)
                 # ==========================================================
                 time.sleep(1)
-                quali = fastf1.get_session(year, round_num, 'Q')
-                quali.load(telemetry=False, messages=False)
+                quali = load_session_safe(year, round_num, 'Q', telemetry=False, messages=False)
                 
                 # Calculate "Gap to Pole %" (Normalized Speed)
                 # This is better than position because it accounts for close fields vs dominance
@@ -148,8 +163,7 @@ def get_data(years=[2023, 2024, 2025], force_rebuild=False):
                 # PHASE 2: THE RACE (The Result)
                 # ==========================================================
                 time.sleep(1)
-                race = fastf1.get_session(year, round_num, 'R')
-                race.load(telemetry=False, messages=True, weather=True) # Messages needed for SC?
+                race = load_session_safe(year, round_num, 'R', telemetry=False, messages=True, weather=True) # Messages needed for SC?
                 
                 if race.results.empty: continue
                 
@@ -247,6 +261,7 @@ def get_data(years=[2023, 2024, 2025], force_rebuild=False):
 
             except Exception as e:
                 print(f"      ⚠️ Error: {e}")
+                time.sleep(2)
                 continue
 
     # --- FINAL PASS: GLOBAL METRICS ---
