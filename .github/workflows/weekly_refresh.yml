@@ -33,8 +33,17 @@ jobs:
       - name: 2. Generate Training Features (Practice Data)
         run: python generate_features.py
 
-      - name: 3. Retrain AI Model
+      - name: 3. Retrain Qualifying Model
         run: python train_model.py
+
+      - name: 4. Generate Race Training Features
+        run: python generate_race_features.py
+
+      - name: 5. Generate Master Driver Profiles
+        run: python generate_master_features.py
+
+      - name: 6. Retrain Race Model
+        run: python train_race_model.py
 
       - name: Check for changes
         id: git-check
