@@ -70,6 +70,9 @@ def calculate_metrics(df):
     # C. FORM GUIDES
     df['Form_Last5_Grid'] = df.groupby('Driver')['Grid_Pos'].transform(lambda x: x.shift(1).rolling(5, min_periods=1).mean())
     df['Form_Last5_Finish'] = df.groupby('Driver')['Finish_Pos'].transform(lambda x: x.shift(1).rolling(5, min_periods=1).mean())
+
+    # C2. SEASON BASELINE (Driver's average grid slot so far this season)
+    df['Season_Avg_Grid'] = df.groupby(['Year', 'Driver'])['Grid_Pos'].transform(lambda x: x.shift(1).expanding().mean())
     
     # D. DRIVER SKILL: POSITIONS GAINED (Normalized)
     # Grid - Finish. We take the median gain over the last year.
