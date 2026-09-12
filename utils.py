@@ -84,7 +84,7 @@ def get_schedule(year):
         date_cols = ['EventDate', 'Session1Date', 'Session2Date', 'Session3Date', 'Session4Date', 'Session5Date']
         for col in date_cols:
             if col in schedule.columns:
-                schedule[col] = pd.to_datetime(schedule[col], errors='coerce')
+                schedule[col] = pd.to_datetime(schedule[col], errors='coerce', utc=True)
         return schedule
     except:
         return pd.DataFrame()
