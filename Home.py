@@ -13,7 +13,10 @@ quali_artifacts = load_model()
 
 # 2. Race Model (Custom Loader)
 @st.cache_resource
-def load_race_model():
+def _load_race_model_cached(_mtime):
+    # _mtime busts the cache whenever the pkl on disk changes (e.g. a new
+    # deploy) - cache_resource otherwise keys only on the function itself
+    # and would keep serving a stale (or previously-failed) result forever.
     try:
         import pickle
         if os.path.exists('data/race_model.pkl'):
@@ -21,6 +24,13 @@ def load_race_model():
                 return pickle.load(f)
     except: return None
     return None
+
+def load_race_model():
+    try:
+        mtime = os.path.getmtime('data/race_model.pkl')
+    except OSError:
+        mtime = None
+    return _load_race_model_cached(mtime)
 
 race_artifacts = load_race_model()
 

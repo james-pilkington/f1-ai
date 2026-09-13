@@ -137,8 +137,13 @@ def get_weekend_status(year, round_num):
     except:
         return {}, "Unknown"
 
+_DATA_FILES = ['data/processed_f1_data.parquet', 'data/quali_training_data.parquet', 'data/track_maps.parquet']
+
 @st.cache_data
-def load_data():
+def _load_data_cached(_mtimes):
+    # _mtimes busts the cache whenever any source file changes on disk -
+    # cache_data otherwise keys only on the function itself and would keep
+    # serving stale data forever after a new deploy.
     data = {}
     try:
         df = pd.read_parquet('data/processed_f1_data.parquet')
@@ -146,18 +151,32 @@ def load_data():
             df[c] = pd.to_numeric(df[c], errors='coerce')
         data['history'] = df
     except: data['history'] = pd.DataFrame()
-        
+
     try: data['training'] = pd.read_parquet('data/quali_training_data.parquet')
     except: data['training'] = pd.DataFrame()
-    
+
     try: data['maps'] = pd.read_parquet('data/track_maps.parquet')
     except: data['maps'] = pd.DataFrame()
     return data
 
+def load_data():
+    mtimes = tuple(os.path.getmtime(f) if os.path.exists(f) else None for f in _DATA_FILES)
+    return _load_data_cached(mtimes)
+
 @st.cache_resource
-def load_model():
+def _load_model_cached(_mtime):
+    # _mtime busts the cache whenever the pkl on disk changes (e.g. a new
+    # deploy) - cache_resource otherwise keys only on the function itself
+    # and would keep serving a stale (or previously-failed) result forever.
     try:
         with open('data/quali_model.pkl', 'rb') as f:
             return pickle.load(f)
     except: return None
+
+def load_model():
+    try:
+        mtime = os.path.getmtime('data/quali_model.pkl')
+    except OSError:
+        mtime = None
+    return _load_model_cached(mtime)
 

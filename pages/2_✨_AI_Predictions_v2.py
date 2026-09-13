@@ -37,18 +37,28 @@ TRACK_CONFIG = {
 }
 
 @st.cache_resource
-def load_race_suite():
+def _load_race_suite_cached(_mtime):
+    # _mtime busts the cache whenever the pkl on disk changes (e.g. a new
+    # deploy) - cache_resource otherwise keys only on the function itself
+    # and would keep serving a stale (or previously-failed) result forever.
     try:
         import pickle
         with open('data/race_model.pkl', 'rb') as f:
             return pickle.load(f)
     except: return None
 
+def load_race_suite():
+    try:
+        mtime = os.path.getmtime('data/race_model.pkl')
+    except OSError:
+        mtime = None
+    return _load_race_suite_cached(mtime)
+
 @st.cache_data
-def get_driver_profiles():
+def _get_driver_profiles_cached(_mtime):
     """
     Loads the latest known stats (Pit Speed, Volatility, etc.) for every driver
-    from the master history file.
+    from the master history file. _mtime busts the cache when the file changes.
     """
     if os.path.exists('data/race_data_master.parquet'):
         df = pd.read_parquet('data/race_data_master.parquet')
@@ -56,6 +66,13 @@ def get_driver_profiles():
         latest = df.sort_values(['Year', 'RoundNumber']).groupby('Driver').tail(1).set_index('Driver')
         return latest
     return pd.DataFrame()
+
+def get_driver_profiles():
+    try:
+        mtime = os.path.getmtime('data/race_data_master.parquet')
+    except OSError:
+        mtime = None
+    return _get_driver_profiles_cached(mtime)
 
 data_store = load_data()
 quali_artifacts = load_model()
