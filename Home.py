@@ -122,5 +122,56 @@ if next_race is not None:
     if st.button("Go to Race Oracle →", type="primary"):
         st.switch_page("pages/1_✨_AI_Predictions.py")
 
+    st.divider()
+    with st.expander("🧠 How the AI models work — features & methodology"):
+        st.markdown("""
+Both models are retrained from scratch each time new race data comes in — nothing here is hand-tuned per race, it's whatever the training script fits from the numbers. Current accuracy is in the sidebar; this is *how* it gets there.
+""")
+
+        col_q, col_r = st.columns(2)
+
+        with col_q:
+            st.markdown("""
+#### 🔮 Qualifying AI
+Predicts final grid position from Friday/Saturday practice pace.
+
+**Algorithm:** Gradient Boosting Regressor — tuned with a randomized search over 20 combinations of tree count, depth, learning rate and subsampling, picked by 3-fold cross-validation on mean absolute error.
+
+**Features:**
+- `FP_Pos` / `FP_Gap` — final practice rank and time gap to the fastest car
+- `Teammate_Delta_Gap` — pace vs. teammate in the identical car, to separate driver skill from car performance
+- `Form_Last3` — **median** (not mean, so one crash doesn't skew it) qualifying position over the last 3 races
+- `Driver_Track_Avg` — that driver's own history at this specific circuit
+- `Driver_Rating` / `Team_Rating` — career-long average qualifying position, used as a baseline
+- `Track_Type_Code` — street circuit vs. permanent circuit
+
+**Target:** actual qualifying position, clipped to a legal 1–20 range.
+""")
+
+        with col_r:
+            st.markdown("""
+#### 🏁 Race Strategy Oracle
+Three separate models sharing one feature set, each answering a different question.
+
+**Models:**
+- **Pace** — HistGradientBoostingRegressor → predicted finishing position
+- **DNF Risk** — RandomForestClassifier → probability of retirement
+- **Big Mover** — HistGradientBoostingClassifier → will this driver gain 3+ places?
+
+**Shared features:**
+- `Grid_Pos`, `Car_Potential` (grid gap to the team's best-placed car that weekend), `Teammate_Delta_Grid`
+- `Quali_Gap_Pct` — % off pole, more informative than raw position when the field is bunched up or spread out
+- `Season_Avg_Grid`, `Form_Last5_Finish`, `Quali_Volatility` — rolling season form and consistency
+- `Avg_Pos_Gained` — rolling 10-race average of grid→finish gain ("racecraft")
+- `Team_Pit_Speed` — team's season-to-date average pit stop duration
+- `Track_Code`, `Downforce_Code`, `Is_Rain` — circuit identity and conditions
+""")
+
+        st.markdown("""
+**On avoiding lookahead bias:** every rolling/season-average feature above (`Form_Last3`, `Season_Avg_Grid`, `Quali_Volatility`, `Avg_Pos_Gained`, `Team_Pit_Speed`, `Driver_Track_Avg`) is computed with a one-race lag — a driver's "form" going into Round 5 only ever sees Rounds 1–4. None of these features can see the result they're trying to predict.
+
+Training data currently spans every qualifying and race session from the 2023 season through the most recently completed round.
+""")
+
 else:
     st.success("Season Complete! Use the Historical Data tools to analyze the past season.")
