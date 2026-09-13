@@ -1,9 +1,9 @@
-streamlit==1.50.0
-fastf1==3.7.0
+streamlit==1.63.0
+fastf1==3.8.3
 pandas==2.3.3
-numpy==2.0.2
-scikit-learn==1.6.1
-pyarrow==21.0.0
-matplotlib==3.9.4
+numpy==2.5.3
+scikit-learn==1.9.1
+pyarrow==24.0.0
+matplotlib==3.11.2
 seaborn==0.13.2
-plotly==6.5.0
+plotly==7.0.0
