@@ -90,13 +90,13 @@ if next_race is not None:
         with cols[i]:
             if sess in status:
                 state = status[sess]['state']
-                date_str = status[sess]['date'].strftime('%d %b %H:%M')
-                
+
                 if state == 'Complete':
                     st.success(f"**{sess}**\n\n✅")
                 elif state == 'N/A':
                     st.write(f"**{sess}**\n\n--")
                 else:
+                    date_str = status[sess]['date'].strftime('%d %b %H:%M')
                     st.info(f"**{sess}**\n\n📅 {date_str}")
 
     st.divider()
@@ -110,7 +110,7 @@ if next_race is not None:
     """)
     
     if st.button("Go to Race Oracle →", type="primary"):
-        st.switch_page("pages/1_ai_predictions.py")
+        st.switch_page("pages/1_✨_AI_Predictions.py")
 
 else:
     st.success("Season Complete! Use the Historical Data tools to analyze the past season.")

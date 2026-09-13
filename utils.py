@@ -16,8 +16,7 @@ def setup_app():
         layout="wide"
     )
     # Cache & Plotting Setup
-    if not os.path.exists('f1_cache'):
-        os.makedirs('f1_cache')
+    os.makedirs('f1_cache', exist_ok=True)
     fastf1.Cache.enable_cache('f1_cache') 
     fastf1.plotting.setup_mpl(misc_mpl_mods=False)
 
