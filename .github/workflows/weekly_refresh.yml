@@ -1,10 +1,15 @@
 name: Weekly F1 AI Update
 
+# Scheduled cron disabled: GitHub-hosted runners get every FastF1 request
+# rejected outright (all data categories fail instantly, even for
+# long-completed historical races that fetch fine from a local machine) -
+# looks like the shared runner IP range is blocked by the backend FastF1
+# talks to. Verified this isn't our request volume or code: the exact same
+# code/library versions succeed immediately from a non-GitHub-Actions IP.
+# Run refresh_data.sh locally instead (see repo root) until/unless this
+# moves to a self-hosted runner.
 on:
-  schedule:
-    # Run at 09:00 UTC every Monday
-    - cron: '0 9 * * 1'
-  workflow_dispatch:  # Allows you to click "Run Now" manually for testing
+  workflow_dispatch:  # Manual "Run workflow" only - kept in case GitHub's IP situation changes
 
 permissions:
   contents: write  # Critical: Allows the bot to push changes back to the repo
