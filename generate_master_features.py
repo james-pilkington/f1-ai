@@ -10,6 +10,11 @@ fastf1.Cache.enable_cache('f1_cache')
 
 DATA_FILE = 'data/race_data_master.parquet'
 
+# FastF1 self-limits to 200-500 calls/h per process. A weekly run only ever
+# needs 1 new round; this cap just keeps a multi-round catch-up from blowing
+# through that budget and failing every round outright.
+MAX_NEW_ROUNDS_PER_RUN = 2
+
 # --- 1. CONFIG: THE WORLD TOUR (24 Tracks) ---
 # We define physical characteristics for every possible track.
 # This helps the model generalize: "If good at High Downforce (Monaco), likely good at Hungary."
@@ -116,6 +121,7 @@ def get_data(years=None, force_rebuild=False):
             print(f"📂 Resuming... Loaded {len(master_df)} rows.")
         except: pass
     
+    new_rounds_fetched = 0
     for year in years:
         try:
             schedule = fastf1.get_event_schedule(year, include_testing=False)
@@ -127,10 +133,15 @@ def get_data(years=None, force_rebuild=False):
         for i, row in completed.iterrows():
             race_name = row['EventName']
             round_num = row['RoundNumber']
-            
+
             if (year, round_num) in existing_rounds:
                 continue
 
+            if new_rounds_fetched >= MAX_NEW_ROUNDS_PER_RUN:
+                print(f"   ⏸️ Reached cap of {MAX_NEW_ROUNDS_PER_RUN} new rounds this run. Remaining rounds will be picked up next run.")
+                break
+
+            new_rounds_fetched += 1
             print(f"   📍 R{round_num}: {race_name}")
             
             try:
@@ -263,6 +274,9 @@ def get_data(years=None, force_rebuild=False):
                 print(f"      ⚠️ Error: {e}")
                 time.sleep(2)
                 continue
+
+        if new_rounds_fetched >= MAX_NEW_ROUNDS_PER_RUN:
+            break
 
     # --- FINAL PASS: GLOBAL METRICS ---
     if not master_df.empty:

@@ -10,6 +10,11 @@ fastf1.Cache.enable_cache('f1_cache')
 
 DATA_FILE = 'data/quali_training_data.parquet'
 
+# FastF1 self-limits to 200-500 calls/h per process. A weekly run only ever
+# needs 1 new round; this cap just keeps a multi-round catch-up from blowing
+# through that budget and failing every round outright.
+MAX_NEW_ROUNDS_PER_RUN = 2
+
 # --- 1. CONFIG: TRACK TYPES ---
 TRACK_CONFIG = {
     'Monaco Grand Prix': 'Street', 'Singapore Grand Prix': 'Street', 
@@ -71,9 +76,10 @@ def get_data(years=None, force_rebuild=False):
         except: 
             print("⚠️ File error. Starting fresh.")
     
+    new_rounds_fetched = 0
     for year in years:
         try:
-            time.sleep(0.5) 
+            time.sleep(0.5)
             schedule = fastf1.get_event_schedule(year, include_testing=False)
             completed = schedule[schedule['EventDate'] < pd.Timestamp.now()]
         except: continue
@@ -83,10 +89,15 @@ def get_data(years=None, force_rebuild=False):
         for i, row in completed.iterrows():
             race_name = row['EventName']
             round_num = row['RoundNumber']
-            
+
             if (year, round_num) in existing_rounds:
                 continue
-                
+
+            if new_rounds_fetched >= MAX_NEW_ROUNDS_PER_RUN:
+                print(f"   ⏸️ Reached cap of {MAX_NEW_ROUNDS_PER_RUN} new rounds this run. Remaining rounds will be picked up next run.")
+                break
+
+            new_rounds_fetched += 1
             print(f"   📍 FETCHING R{round_num}: {race_name}")
 
             try:
@@ -171,8 +182,10 @@ def get_data(years=None, force_rebuild=False):
                 time.sleep(2)
                 continue
 
+        if new_rounds_fetched >= MAX_NEW_ROUNDS_PER_RUN:
+            break
+
     print(f"🏁 Update Complete.")
 
 if __name__ == "__main__":
-    # Force rebuild to fix your bad/empty data
-    get_data(force_rebuild=True)
+    get_data()
